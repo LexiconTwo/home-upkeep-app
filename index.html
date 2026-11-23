@@ -179,6 +179,15 @@ textarea{min-height:80px;resize:vertical}
     <textarea id="fNotes" placeholder="Como fazer, modelo do produto/filtro, telefone do fornecedor…"></textarea>
     <label class="check" id="fActiveWrap"><input type="checkbox" id="fActive"> Ativo (desmarque para arquivar)</label>
     <div class="actions"><button class="btn" id="editSave">Salvar</button></div>
+    <div class="postpone" id="ePostponeBox" hidden>
+      <label for="ePostponeDate">Não vai dar para fazer no prazo? Adiar para</label>
+      <div class="row2">
+        <input type="date" id="ePostponeDate">
+        <button class="btn ghost" id="ePostponeSave">Adiar</button>
+      </div>
+      <div class="last" id="ePostponeInfo" style="margin-top:8px"></div>
+      <button class="linkbtn" id="ePostponeClear" hidden style="margin:10px 0 0">Remover adiamento</button>
+    </div>
     <div class="hist" id="hist"></div>
   </div>
 </div>

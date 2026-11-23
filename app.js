@@ -261,19 +261,24 @@ function openDone(id){
   $('#doneNote').value = '';
   $('#doneSave').textContent = t.lastDone ? 'Marcar como feito' : 'Salvar data inicial';
 
-  // Adiar só faz sentido para tarefas que já têm data.
-  const canPostpone = !!(t.lastDone && t.nextDue);
-  $('#postponeBox').hidden = !canPostpone;
-  if (canPostpone) {
-    const base = t.nextDue > DATA.today ? t.nextDue : DATA.today;
-    $('#postponeDate').min = addDaysIso(DATA.today, 1);
-    $('#postponeDate').value = addDaysIso(base, 7);
-    $('#postponeInfo').textContent = t.postponedUntil
-      ? 'Adiada para ' + fmt(t.postponedUntil) + ' (vencimento original: ' + fmt(t.originalDue) + ').'
-      : 'Vencimento atual: ' + fmt(t.nextDue) + ' · ao adiar, os lembretes esperam a nova data.';
-    $('#postponeClear').hidden = !t.postponedUntil;
-  }
+  fillPostpone('', t);
   open($('#doneSheet'));
+}
+
+// A opção de adiar aparece nas duas telas: "Feito" (prefixo '') e "Detalhes da tarefa" (prefixo 'e').
+function pp(prefix, name){ return $('#' + (prefix ? prefix + name.charAt(0).toUpperCase() + name.slice(1) : name)); }
+function fillPostpone(prefix, t){
+  // Adiar só faz sentido para tarefas ativas que já têm data.
+  const canPostpone = !!(t && t.active && t.lastDone && t.nextDue);
+  pp(prefix, 'postponeBox').hidden = !canPostpone;
+  if (!canPostpone) return;
+  const base = t.nextDue > DATA.today ? t.nextDue : DATA.today;
+  pp(prefix, 'postponeDate').min = addDaysIso(DATA.today, 1);
+  pp(prefix, 'postponeDate').value = addDaysIso(base, 7);
+  pp(prefix, 'postponeInfo').textContent = t.postponedUntil
+    ? 'Adiada para ' + fmt(t.postponedUntil) + ' (vencimento original: ' + fmt(t.originalDue) + ').'
+    : 'Vencimento atual: ' + fmt(t.nextDue) + ' · ao adiar, os lembretes esperam a nova data.';
+  pp(prefix, 'postponeClear').hidden = !t.postponedUntil;
 }
 
 function openEdit(id){
@@ -289,6 +294,7 @@ function openEdit(id){
   $('#fActive').checked = t ? t.active : true;
   $('#fActiveWrap').style.display = t ? '' : 'none';
   $('#hist').innerHTML = '';
+  fillPostpone('e', t);
   open($('#editSheet'));
   if (t) {
     $('#hist').innerHTML = '<h2>Histórico</h2><div class="last">Carregando…</div>';
@@ -392,20 +398,22 @@ $('#doneSave').addEventListener('click', () => {
   }).catch(fail);
 });
 
-function postpone(untilIso){
-  const t = find(doneId);
+function postpone(id, untilIso){
+  const t = find(id);
   setBusy(true);
-  apiPost('postpone', { id: doneId, untilIso: untilIso }).then(d => {
+  apiPost('postpone', { id: id, untilIso: untilIso }).then(d => {
     closeAll(); render(d);
     toast(untilIso ? '⏸ ' + t.task + ' adiada para ' + fmt(untilIso) : 'Adiamento removido');
   }).catch(fail);
 }
-$('#postponeSave').addEventListener('click', () => {
-  const v = $('#postponeDate').value;
-  if (!v || v <= DATA.today) return toast('Escolha uma data a partir de amanhã.');
-  postpone(v);
+[['', () => doneId], ['e', () => editId]].forEach(([prefix, currentId]) => {
+  pp(prefix, 'postponeSave').addEventListener('click', () => {
+    const v = pp(prefix, 'postponeDate').value;
+    if (!v || v <= DATA.today) return toast('Escolha uma data a partir de amanhã.');
+    postpone(currentId(), v);
+  });
+  pp(prefix, 'postponeClear').addEventListener('click', () => postpone(currentId(), ''));
 });
-$('#postponeClear').addEventListener('click', () => postpone(''));
 
 $('#editSave').addEventListener('click', () => {
   const payload = {
